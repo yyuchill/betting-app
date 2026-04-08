@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投注記帳 App - 即時盈虧追蹤</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #1a1a1a;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .header-actions button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .header-actions button:hover {
+            background: #f5f5f5;
+        }
+        
+        .tab-nav {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            border: 1px solid transparent;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .tab-btn:hover {
+            background: #e8e8e8;
+        }
+        
+        .tab-btn.active {
+            background: #185FA5;
+            color: white;
+            border-color: #185FA5;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .form-card h2 {
+            font-size: 18px;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            color: #1a1a1a;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #185FA5;
+            box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        button {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a1a1a;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #f5f5f5;
+            border-color: #999;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: #185FA5;
+            color: white;
+            border-color: #185FA5;
+        }
+        
+        .btn-primary:hover {
+            background: #0C447C;
+            border-color: #0C447C;
+        }
+        
+        .btn-success {
+            background: #3B6D11;
+            color: white;
+            border-color: #3B6D11;
+        }
+        
+        .btn-success:hover {
+            background: #2d5309;
+        }
+        
+        .btn-danger {
+            background: #A32D2D;
+            color: white;
+            border-color: #A32D2D;
+        }
+        
+        .btn-danger:hover {
+            background: #7a2222;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #185FA5;
+        }
+        
+        .metric-card.positive {
+            border-left-color: #3B6D11;
+        }
+        
+        .metric-card.negative {
+            border-left-color: #A32D2D;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .metric-value.positive {
+            color: #3B6D11;
+        }
+        
+        .metric-value.negative {
+            color: #A32D2D;
+        }
+        
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .records-table th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .records-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        
+        .records-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .amount {
+            font-weight: 600;
+        }
+        
+        .profit {
+            font-weight: 600;
+        }
+        
+        .profit.positive {
+            color: #3B6D11;
+        }
+        
+        .profit.negative {
+            color: #A32D2D;
+        }
+        
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 900px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+            min-height: 350px;
+        }
+        
+        .chart-card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+        
+        .delete-btn {
+            background: #FCEBEB;
+            color: #A32D2D;
+            border-color: #f5c4c4;
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        .delete-btn:hover {
+            background: #f5d5d5;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #999;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+        
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #3B6D11;
+            font-weight: 600;
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #3B6D11;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .sync-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>💰 投注記帳</h1>
+            </div>
+            <div class="header-actions">
+                <div class="live-status">
+                    <span class="live-indicator"></span>
+                    <span id="liveStatus">即時同步</span>
+                </div>
+                <button onclick="exportData()" title="導出為 CSV">📥 導出</button>
+                <button onclick="clearAllData()" title="清空所有數據">🗑️ 清空</button>
+            </div>
+        </header>
+        
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('input', event)">📝 新增紀錄</button>
+            <button class="tab-btn" onclick="switchTab('analytics', event)">📊 統計分析</button>
+            <button class="tab-btn" onclick="switchTab('records', event)">📋 所有紀錄</button>
+        </div>
+        
+        <!-- 新增紀錄 Tab -->
+        <div id="input" class="tab-content active">
+            <div class="form-card">
+                <h2>記錄今日投注</h2>
+                <form onsubmit="addRecord(event)">
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>投注金額 (元)</label>
+                            <input type="number" id="amount" placeholder="0" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>獲利/虧損 (元)</label>
+                            <input type="number" id="profit" placeholder="0" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>投注類型</label>
+                        <select id="type">
+                            <option value="體育">體育投注</option>
+                            <option value="賽馬">賽馬</option>
+                            <option value="樂透">樂透彩</option>
+                            <option value="撲克">撲克</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>備註</label>
+                        <textarea id="notes" placeholder="記錄詳細信息..." rows="3"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">✓ 保存紀錄</button>
+                </form>
+                <div class="sync-info">💡 数据自动保存到本地，刷新页面后不会丢失</div>
+            </div>
+        </div>
+        
+        <!-- 統計分析 Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="form-card">
+                <label>選擇時間範圍</label>
+                <select id="analyticsRange" onchange="updateAnalytics()" style="width: 200px;">
+                    <option value="day">今日</option>
+                    <option value="week" selected>本週</option>
+                    <option value="month">本月</option>
+                    <option value="all">全部</option>
+                </select>
+            </div>
+            
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-label">總投注金額</div>
+                    <div class="metric-value" id="totalAmount">$0</div>
+                </div>
+                <div class="metric-card" id="profitCard">
+                    <div class="metric-label">總獲利/虧損</div>
+                    <div class="metric-value" id="totalProfit">$0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">勝率</div>
+                    <div class="metric-value" id="winRate">0%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">投注次數</div>
+                    <div class="metric-value" id="recordCount">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">平均獲利/次</div>
+                    <div class="metric-value" id="avgProfit">$0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">淨利潤率</div>
+                    <div class="metric-value" id="profitRate">0%</div>
+                </div>
+            </div>
+            
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h3>每日獲利趨勢</h3>
+                    <div class="chart-container">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>投注類型分佈</h3>
+                    <div class="chart-container">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 所有紀錄 Tab -->
+        <div id="records" class="tab-content">
+            <div class="form-card">
+                <input type="search" id="searchInput" placeholder="🔍 搜尋備註..." onkeyup="filterRecords()" style="width: 100%; padding: 12px;">
+            </div>
+            <div id="recordsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div>尚未有投注記錄</div>
+                    <div style="font-size: 12px; margin-top: 0.5rem;">在「新增紀錄」頁面添加你的第一筆投注</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 初始化日期
+        document.getElementById('date').valueAsDate = new Date();
+        
+        // 儲存數據到 localStorage
+        let records = JSON.parse(localStorage.getItem('bettingRecords')) || [];
+        let charts = {};
+        
+        function addRecord(e) {
+            e.preventDefault();
+            
+            const record = {
+                id: Date.now(),
+                date: document.getElementById('date').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                profit: parseFloat(document.getElementById('profit').value),
+                type: document.getElementById('type').value,
+                notes: document.getElementById('notes').value
+            };
+            
+            records.push(record);
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            localStorage.setItem('bettingRecords', JSON.stringify(records));
+            
+            // 重設表單
+            document.querySelector('form').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // 更新視圖
+            renderRecords();
+            updateAnalytics();
+            
+            // 顯示成功提示
+            showNotification('✓ 紀錄已保存！', 'success');
+        }
+        
+        function showNotification(message, type) {
+            const div = document.createElement('div');
+            div.textContent = message;
+            div.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                background: ${type === 'success' ? '#3B6D11' : '#A32D2D'};
+                color: white;
+                border-radius: 6px;
+                font-size: 14px;
+                z-index: 9999;
+                animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+        }
+        
+        function deleteRecord(id) {
+            if (confirm('確認刪除此紀錄？')) {
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('bettingRecords', JSON.stringify(records));
+                renderRecords();
+                updateAnalytics();
+                showNotification('✓ 紀錄已刪除', 'success');
+            }
+        }
+        
+        function renderRecords() {
+            const container = document.getElementById('recordsContainer');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = records.filter(r => 
+                r.notes.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>${searchTerm ? '沒有符合條件的紀錄' : '尚未有投注記錄'}</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div style="overflow-x: auto;">
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>投注金額</th>
+                            <th>獲利/虧損</th>
+                            <th>類型</th>
+                            <th>備註</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filtered.forEach(record => {
+                const profitClass = record.profit >= 0 ? 'positive' : 'negative';
+                const profitSymbol = record.profit >= 0 ? '+' : '';
+                
+                html += `
+                    <tr>
+                        <td>${new Date(record.date).toLocaleDateString('zh-TW')}</td>
+                        <td class="amount">$${Math.round(record.amount).toLocaleString('zh-TW')}</td>
+                        <td class="profit ${profitClass}">${profitSymbol}$${Math.round(record.profit).toLocaleString('zh-TW')}</td>
+                        <td>${record.type}</td>
+                        <td>${record.notes}</td>
+                        <td><button class="delete-btn" onclick="deleteRecord(${record.id})">🗑️ 刪除</button></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+        
+        function filterRecords() {
+            renderRecords();
+        }
+        
+        function getDateRange() {
+            const range = document.getElementById('analyticsRange').value;
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            let startDate;
+            
+            if (range === 'day') {
+                startDate = new Date(today);
+            } else if (range === 'week') {
+                startDate = new Date(today);
+                startDate.setDate(startDate.getDate() - today.getDay());
+            } else if (range === 'month') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            } else {
+                startDate = new Date(2000, 0, 1);
+            }
+            
+            return {start: startDate, end: now};
+        }
+        
+        function updateAnalytics() {
+            const {start, end} = getDateRange();
+            
+            let filtered = records.filter(r => {
+                const recordDate = new Date(r.date);
+                return recordDate >= start && recordDate <= end;
+            });
+            
+            // 計算指標
+            const totalAmount = filtered.reduce((sum, r) => sum + r.amount, 0);
+            const totalProfit = filtered.reduce((sum, r) => sum + r.profit, 0);
+            const wins = filtered.filter(r => r.profit > 0).length;
+            const winRate = filtered.length > 0 ? Math.round((wins / filtered.length) * 100) : 0;
+            const avgProfit = filtered.length > 0 ? totalProfit / filtered.length : 0;
+            const profitRate = totalAmount > 0 ? Math.round((totalProfit / totalAmount) * 100) : 0;
+            
+            // 更新指標卡
+            document.getElementById('totalAmount').textContent = '$' + Math.round(totalAmount).toLocaleString('zh-TW');
+            const profitElement = document.getElementById('totalProfit');
+            profitElement.textContent = (totalProfit >= 0 ? '+' : '') + '$' + Math.round(totalProfit).toLocaleString('zh-TW');
+            profitElement.className = 'metric-value ' + (totalProfit >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('profitCard').className = 'metric-card ' + (totalProfit >= 0 ? 'positive' : 'negative');
+            document.getElementById('winRate').textContent = winRate + '%';
+            document.getElementById('recordCount').textContent = filtered.length;
+            document.getElementById('avgProfit').textContent = (avgProfit >= 0 ? '+' : '') + '$' + Math.round(avgProfit).toLocaleString('zh-TW');
+            
+            const profitRateElement = document.getElementById('profitRate');
+            profitRateElement.textContent = (profitRate >= 0 ? '+' : '') + profitRate + '%';
+            profitRateElement.className = 'metric-value ' + (profitRate >= 0 ? 'positive' : 'negative');
+            
+            // 更新圖表
+            updateCharts(filtered);
+        }
+        
+        function updateCharts(filtered) {
+            // 每日獲利趨勢
+            const dailyData = {};
+            filtered.forEach(r => {
+                if (!dailyData[r.date]) dailyData[r.date] = 0;
+                dailyData[r.date] += r.profit;
+            });
+            
+            const sortedDates = Object.keys(dailyData).sort();
+            const dailyProfit = sortedDates.map(d => dailyData[d]);
+            
+            if (charts.daily) charts.daily.destroy();
+            const dailyCtx = document.getElementById('dailyChart');
+            if (dailyCtx) {
+                charts.daily = new Chart(dailyCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: sortedDates.map(d => new Date(d).toLocaleDateString('zh-TW', {month: 'short', day: 'numeric'})),
+                        datasets: [{
+                            label: '每日獲利',
+                            data: dailyProfit,
+                            borderColor: '#185FA5',
+                            backgroundColor: 'rgba(24, 95, 165, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#185FA5',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {display: false}
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {color: 'rgba(0,0,0,0.05)'}
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 投注類型分佈
+            const typeData = {};
+            filtered.forEach(r => {
+                if (!typeData[r.type]) typeData[r.type] = 0;
+                typeData[r.type] += r.amount;
+            });
+            
+            const colors = ['#185FA5', '#3B6D11', '#BA7517', '#D85A30', '#534AB7'];
+            
+            if (charts.type) charts.type.destroy();
+            const typeCtx = document.getElementById('typeChart');
+            if (typeCtx) {
+                charts.type = new Chart(typeCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(typeData),
+                        datasets: [{
+                            data: Object.values(typeData),
+                            backgroundColor: colors,
+                            borderColor: 'white',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: {size: 13}
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function switchTab(tabName, event) {
+            // 隱藏所有 tab
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            // 顯示選中的 tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // 更新分析圖表
+            if (tabName === 'analytics') {
+                setTimeout(() => updateAnalytics(), 100);
+            }
+        }
+        
+        function exportData() {
+            if (records.length === 0) {
+                showNotification('⚠️ 沒有數據可導出', 'error');
+                return;
+            }
+            
+            let csv = '日期,投注金額,獲利/虧損,類型,備註\n';
+            records.forEach(r => {
+                csv += `${r.date},${r.amount},${r.profit},${r.type},"${r.notes.replace(/"/g, '""')}"\n`;
+            });
+            
+            const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `投注記帳_${new Date().toLocaleDateString('zh-TW')}.csv`);
+            link.click();
+            
+            showNotification('✓ 數據已導出', 'success');
+        }
+        
+        function clearAllData() {
+            if (confirm('⚠️ 確認要清空所有數據嗎？此操作無法撤銷！')) {
+                records = [];
+                localStorage.setItem('bettingRecords', JSON.stringify(records));
+                renderRecords();
+                updateAnalytics();
+                showNotification('✓ 所有數據已清空', 'success');
+            }
+        }
+        
+        // 初始化
+        renderRecords();
+        updateAnalytics();
+        
+        // 每5秒自動同步一次
+        setInterval(() => {
+            localStorage.setItem('bettingRecords', JSON.stringify(records));
+        }, 5000);
+    </script>
+</body>
+</html>
